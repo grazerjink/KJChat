@@ -34,12 +34,12 @@ class ServerViewController() : Controller() {
     }
 
     fun turnOffServer() {
-        server!!.stop()
+        server?.stop()
     }
 
     fun retryStart(newPort: Int) {
         if (server != null) {
-            server!!.stop()
+            server?.stop()
         }
         server = ChatSocketServer(this, newPort)
     }

@@ -1,6 +1,6 @@
 package server.socket
 
-import data.Message
+import database.Message
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream

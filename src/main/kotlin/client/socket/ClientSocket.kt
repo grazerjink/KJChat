@@ -1,7 +1,7 @@
 package client.socket
 
 import client.ui.ChatViewController
-import data.Message
+import database.Message
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.net.ConnectException
@@ -58,6 +58,7 @@ class ClientSocket(val controller: ChatViewController, val ip: String, val port:
                             controller.setConnected(true)
                             controller.setLogined(true)
                             controller.updateMessage("${msg.recipient} login successful")
+                            controller.setTitleForCurrentUser()
                         } else {
                             // show login failed
                             controller.updateMessage("Login failed, please try again !")

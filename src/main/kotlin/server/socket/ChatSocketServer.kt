@@ -1,6 +1,7 @@
 package server.socket
 
-import data.Message
+import database.KJChat
+import database.Message
 import server.ui.ServerViewController
 import java.io.IOException
 import java.net.ServerSocket
@@ -13,12 +14,12 @@ class ChatSocketServer(val controller: ServerViewController, var port: Int = 130
     private lateinit var server: ServerSocket
     private var clientThreads = arrayOfNulls<ServerThread>(50)
     private var clientCount: Int = 0
-    private var db = Database(controller.filePath)
+
+    private val db = KJChat.instance
     private var running = true
 
     init {
         try {
-            db = Database(controller.filePath)
             server = ServerSocket(port)
             port = server.localPort
             controller.updateMessage("Server started at IP: ${InetAddress.getLocalHost().hostAddress} and port: $port")
@@ -62,7 +63,7 @@ class ChatSocketServer(val controller: ServerViewController, var port: Int = 130
             clientThreads[clientCount] = ServerThread(this, socket)
             try {
                 clientThreads[clientCount]!!.openStream()
-                clientThreads[clientCount]!!.sendMessage(Message("confirm","system","connection accepted","SERVER"))
+                clientThreads[clientCount]!!.sendMessage(Message("confirm", "system", "connection accepted", "SERVER"))
                 clientThreads[clientCount]!!.start()
                 clientCount++
             } catch (ioe: IOException) {
@@ -85,7 +86,7 @@ class ChatSocketServer(val controller: ServerViewController, var port: Int = 130
             }
             "login" -> {
                 if (findUserThread(msg.sender) == null) {
-                    if (db.checkLogin(msg.sender, msg.content)) {
+                    if (db.checkUserLogin(msg.sender, msg.content)) {
                         clientThreads[findClient(ID)]!!.username = msg.sender
                         clientThreads[findClient(ID)]!!.sendMessage(Message("login", "SERVER", "TRUE", msg.sender))
                         announce("newuser", "SERVER", msg.sender)
@@ -104,6 +105,7 @@ class ChatSocketServer(val controller: ServerViewController, var port: Int = 130
                     findUserThread(msg.recipient)!!.sendMessage(Message(msg.type, msg.sender, msg.content, msg.recipient))
                     clientThreads[findClient(ID)]!!.sendMessage(Message(msg.type, msg.sender, msg.content, msg.recipient))
                 }
+                KJChat.instance.insertMessage(msg)
             }
             "sticker" -> {
                 if (msg.recipient.equals("All")) {
@@ -115,8 +117,8 @@ class ChatSocketServer(val controller: ServerViewController, var port: Int = 130
             }
             "signup" -> {
                 if (findUserThread(msg.sender) == null) {
-                    if (!db.isUserExist(msg.sender)) {
-                        db.addUser(msg.sender, msg.content)
+                    if (!db.checkUserExistance(msg.sender)) {
+                        db.insertUser(msg.sender, msg.content)
                         clientThreads[findClient(ID)]!!.username = msg.sender
                         clientThreads[findClient(ID)]!!.sendMessage(Message("signup", "SERVER", "TRUE", msg.sender))
                         clientThreads[findClient(ID)]!!.sendMessage(Message("login", "SERVER", "TRUE", msg.sender))
@@ -125,21 +127,6 @@ class ChatSocketServer(val controller: ServerViewController, var port: Int = 130
                     }
                 } else {
                     clientThreads[findClient(ID)]!!.sendMessage(Message("signup", "SERVER", "FALSE", msg.sender))
-                }
-            }
-            "upload_req" -> {
-                if (msg.recipient.equals("ALL")) {
-                    clientThreads[findClient(ID)]!!.sendMessage(Message("message", "SERVER", "Uploading to 'All' forbidden", msg.sender))
-                } else {
-                    findUserThread(msg.recipient)!!.sendMessage(Message("upload_req", msg.sender, msg.content, msg.recipient))
-                }
-            }
-            "upload_res" -> {
-                if (!msg.content.equals("NO")) {
-                    val IP = findUserThread(msg.sender)!!.socket.inetAddress.hostAddress
-                    findUserThread(msg.recipient)!!.sendMessage(Message("upload_res", IP, msg.content, msg.recipient))
-                } else {
-                    findUserThread(msg.recipient)!!.sendMessage(Message("upload_res", msg.sender, msg.content, msg.recipient))
                 }
             }
         }

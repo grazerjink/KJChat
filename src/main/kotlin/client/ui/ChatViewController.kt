@@ -1,7 +1,8 @@
 package client.ui
 
 import client.socket.ClientSocket
-import data.Message
+import database.KJChat
+import database.Message
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import tornadofx.*
@@ -55,19 +56,22 @@ class ChatViewController(val chatView : ChatView) : Controller() {
     fun login(username: String, password: String) {
         if (!username.isEmpty() && !password.isEmpty()) {
             ownuser = username
-            var sent = clientSocket.sendMessage(Message("login", username, password, "SERVER"))
-            if(sent) {
-                titleView = "Welcome [[ ${ownuser.toUpperCase()} ]] joined in !!!"
-            }
+            clientSocket.sendMessage(Message("login", username, password, "SERVER"))
+        }
+    }
+
+    fun setTitleForCurrentUser() {
+        runLater {
+            titleView = "Welcome [[ ${ownuser.toUpperCase()} ]] joined in !!!"
+            var listMessages = KJChat.instance.getAllMessage(ownuser)
+            if(listMessages.count() > 0)
+                listContent.addAll(listMessages)
         }
     }
 
     fun signup(username: String, password: String) {
         if (!username.isEmpty() && !password.isEmpty()) {
-            var sent = clientSocket.sendMessage(Message("signup", username, password, "SERVER"))
-            if(sent) {
-                titleView = "Welcome [[ ${ownuser.toUpperCase()} ]] joined in !!!"
-            }
+            clientSocket.sendMessage(Message("signup", username, password, "SERVER"))
         }
     }
 
@@ -89,7 +93,7 @@ class ChatViewController(val chatView : ChatView) : Controller() {
         }
     }
 
-    fun sendMessage(content: String, username: String): Boolean {
+    fun sendMessage(content: String, username: String) : Boolean {
         if (!content.isEmpty() && !username.isEmpty()) {
             clientSocket.sendMessage(Message("message", ownuser, content, username))
             return true
@@ -123,7 +127,8 @@ class ChatViewController(val chatView : ChatView) : Controller() {
         val able = input.available();
         return input.readBytes(able)
     }
-    fun sendSticker(content: String, username: String): Boolean {
+
+    fun sendSticker(content: String, username: String) : Boolean {
         if (!content.isEmpty() && !username.isEmpty()) {
             clientSocket.sendMessage(Message("sticker", ownuser, content, username))
             return true
